@@ -1,0 +1,37 @@
+# Secrets & credentials
+.env
+.env.*
+*.token
+.cf_token
+.linode_token
+secrets/
+*.pem
+*.key
+!*.pub
+
+# Security audit output (generated locally)
+security/audits/*.md
+
+# Reports (generated)
+reports/*.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Logs
+*.log
+logs/
+
+# Docker
+.docker/

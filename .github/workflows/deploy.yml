@@ -1,0 +1,50 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'infrastructure/docker/**'
+  workflow_dispatch:
+    inputs:
+      target_ip:
+        description: 'Target VM IP (leave blank for all)'
+        required: false
+
+jobs:
+  deploy:
+    name: Deploy to Linode VM
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy application
+        env:
+          TARGET: ${{ github.event.inputs.target_ip || vars.PRODUCTION_IP }}
+        run: |
+          chmod +x scripts/deploy/deploy-app.sh
+          ./scripts/deploy/deploy-app.sh \
+            --app web \
+            --env production \
+            --target "$TARGET"
+
+      - name: Notify on success
+        if: success()
+        run: echo "Deployment to $TARGET succeeded at $(date)"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Deployment to $TARGET FAILED at $(date)"
+          exit 1

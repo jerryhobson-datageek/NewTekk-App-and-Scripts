@@ -1,0 +1,56 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Every Monday at 6:00 AM UTC
+  workflow_dispatch:
+    inputs:
+      target_ip:
+        description: 'VM IP to audit (leave blank for all)'
+        required: false
+
+jobs:
+  audit:
+    name: Run Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+
+      - name: Run VM security audit
+        env:
+          TARGET: ${{ github.event.inputs.target_ip || vars.PRODUCTION_IP }}
+        run: |
+          chmod +x scripts/security/audit.sh
+          mkdir -p security/audits
+          ./scripts/security/audit.sh \
+            --target "$TARGET" \
+            --output security/audits/
+
+      - name: Upload audit reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-${{ github.run_number }}
+          path: security/audits/
+          retention-days: 90
+
+      - name: Check for critical findings
+        run: |
+          if grep -r "CRITICAL\|HIGH" security/audits/*.md 2>/dev/null; then
+            echo "High/Critical findings detected — review the uploaded report"
+          else
+            echo "No critical findings"
+          fi
