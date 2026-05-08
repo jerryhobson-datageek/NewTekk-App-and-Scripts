@@ -8,7 +8,7 @@ info()  { echo -e "${GREEN}[INFO]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
 APP=""; ENV="production"; TARGET=""
-SSH_USER="deploy"; SSH_KEY="$HOME/.ssh/id_rsa"
+SSH_USER="deploy"; SSH_KEY="$HOME/.ssh/id_rsa"; SSH_PORT="22"
 COMPOSE_PATH="/home/deploy/app"
 
 while [[ $# -gt 0 ]]; do
@@ -16,6 +16,7 @@ while [[ $# -gt 0 ]]; do
     --app)    APP="$2";    shift 2 ;;
     --env)    ENV="$2";    shift 2 ;;
     --target) TARGET="$2"; shift 2 ;;
+    --port)   SSH_PORT="$2"; shift 2 ;;
     *) error "Unknown: $1" ;;
   esac
 done
@@ -23,7 +24,7 @@ done
 [[ -z "$APP" ]]    && error "Provide --app <name>"
 [[ -z "$TARGET" ]] && error "Provide --target <ip>"
 
-SSH="ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SSH_USER@$TARGET"
+SSH="ssh -i $SSH_KEY -p $SSH_PORT -o StrictHostKeyChecking=no $SSH_USER@$TARGET"
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo " Deploying: $APP | Env: $ENV | Target: $TARGET"

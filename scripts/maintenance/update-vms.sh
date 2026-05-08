@@ -8,13 +8,14 @@ info() { echo -e "${GREEN}[INFO]${NC} $*"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 
 DRY_RUN=false; REBOOT=false
-SSH_USER="deploy"; SSH_KEY="$HOME/.ssh/id_rsa"
+SSH_USER="deploy"; SSH_KEY="$HOME/.ssh/id_rsa"; SSH_PORT="22"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run)          DRY_RUN=true; shift ;;
     --reboot-if-needed) REBOOT=true;  shift ;;
     --user) SSH_USER="$2"; shift 2 ;;
+    --port) SSH_PORT="$2"; shift 2 ;;
     *) echo "Unknown: $1"; exit 1 ;;
   esac
 done
@@ -37,18 +38,18 @@ echo "|----|--------|---------------|"
 while IFS= read -r IP; do
   [[ -z "$IP" ]] && continue
   if $DRY_RUN; then
-    PENDING=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SSH_USER@$IP" \
+    PENDING=$(ssh -i "$SSH_KEY" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$IP" \
       "sudo apt-get update -qq 2>/dev/null; apt list --upgradable 2>/dev/null | wc -l")
     echo "| $IP | ~$PENDING pending (dry run) | unknown |"
   else
-    ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SSH_USER@$IP" \
+    ssh -i "$SSH_KEY" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$IP" \
       "sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -qq" 2>&1
-    REBOOT_NEEDED=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SSH_USER@$IP" \
+    REBOOT_NEEDED=$(ssh -i "$SSH_KEY" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$IP" \
       "[ -f /var/run/reboot-required ] && echo yes || echo no")
     echo "| $IP | updated | $REBOOT_NEEDED |"
     info "$IP updated (reboot: $REBOOT_NEEDED)"
     if [[ "$REBOOT_NEEDED" == "yes" ]] && $REBOOT; then
-      warn "Rebooting $IP..."; ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SSH_USER@$IP" "sudo reboot" || true
+      warn "Rebooting $IP..."; ssh -i "$SSH_KEY" -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$IP" "sudo reboot" || true
     fi
   fi
 done <<< "$IPS"

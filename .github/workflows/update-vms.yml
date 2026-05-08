@@ -44,7 +44,7 @@ jobs:
           if [[ "${{ github.event.inputs.reboot_if_needed }}" == "true" ]]; then
             ARGS="--reboot-if-needed"
           fi
-          ./scripts/maintenance/update-vms.sh $ARGS
+          ./scripts/maintenance/update-vms.sh --port 24830 $ARGS
 
       - name: Upload update report
         uses: actions/upload-artifact@v4

@@ -4,7 +4,7 @@
 set -euo pipefail
 
 TARGET=""; OUTPUT_DIR="$(dirname "$0")/../../security/audits"
-SSH_USER="deploy"; SSH_KEY="$HOME/.ssh/id_rsa"
+SSH_USER="deploy"; SSH_KEY="$HOME/.ssh/id_rsa"; SSH_PORT="22"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -12,6 +12,7 @@ while [[ $# -gt 0 ]]; do
     --output) OUTPUT_DIR="$2"; shift 2 ;;
     --user)   SSH_USER="$2";   shift 2 ;;
     --key)    SSH_KEY="$2";    shift 2 ;;
+    --port)   SSH_PORT="$2";  shift 2 ;;
     *) echo "Unknown: $1"; exit 1 ;;
   esac
 done
@@ -19,7 +20,7 @@ done
 [[ -z "$TARGET" ]] && { echo "Usage: $0 --target <host>"; exit 1; }
 mkdir -p "$OUTPUT_DIR"
 REPORT="$OUTPUT_DIR/security-audit-${TARGET//[.:]/-}-$(date +%Y%m%d-%H%M%S).md"
-SSH="ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SSH_USER@$TARGET"
+SSH="ssh -i $SSH_KEY -p $SSH_PORT -o StrictHostKeyChecking=no $SSH_USER@$TARGET"
 
 echo "Starting audit of $TARGET → $REPORT"
 {

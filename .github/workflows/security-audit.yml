@@ -38,6 +38,7 @@ jobs:
           mkdir -p security/audits
           ./scripts/security/audit.sh \
             --target "$TARGET" \
+            --port 24830 \
             --output security/audits/
 
       - name: Upload audit reports

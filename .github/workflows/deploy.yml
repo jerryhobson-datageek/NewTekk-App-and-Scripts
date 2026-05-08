@@ -37,7 +37,8 @@ jobs:
           ./scripts/deploy/deploy-app.sh \
             --app web \
             --env production \
-            --target "$TARGET"
+            --target "$TARGET" \
+            --port 24830
 
       - name: Notify on success
         if: success()
