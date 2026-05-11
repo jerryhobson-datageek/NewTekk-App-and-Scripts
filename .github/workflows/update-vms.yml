@@ -20,15 +20,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Linode CLI
-        run: pip install linode-cli --quiet
+        run: |
+          pip install linode-cli --quiet
+          sudo apt-get install -y jq -qq 2>/dev/null || true
 
       - name: Configure Linode CLI
-        run: |
-          mkdir -p ~/.config/linode
-          cat > ~/.config/linode/linode-cli.ini <<EOF
-          [DEFAULT]
-          token = ${{ secrets.LINODE_TOKEN }}
-          EOF
+        run: printf '[DEFAULT]\ntoken = %s\ndefault-user = runner\n' "${{ secrets.LINODE_TOKEN }}" > ~/.config/linode-cli
 
       - name: Set up SSH
         run: |
