@@ -1,36 +1,43 @@
 #!/usr/bin/env bash
-# update-vms.sh — Run apt update/upgrade on all running Linode VMs
-# Usage: ./update-vms.sh [--dry-run] [--reboot-if-needed]
+# update-vms.sh – Run apt update/upgrade on all running Linode VMs
+# Usage: ./update-vms.sh [--dry-run] [--reboot-if-needed] [--hosts IP1,IP2] [--port PORT]
 set -euo pipefail
 
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 info() { echo -e "${GREEN}[INFO]${NC} $*"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 
-DRY_RUN=false; REBOOT=false
+DRY_RUN=false; REBOOT=false; HOSTS_OVERRIDE=""
 SSH_USER="deploy"; SSH_KEY="$HOME/.ssh/id_rsa"; SSH_PORT="22"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run)          DRY_RUN=true; shift ;;
     --reboot-if-needed) REBOOT=true;  shift ;;
-    --user) SSH_USER="$2"; shift 2 ;;
-    --port) SSH_PORT="$2"; shift 2 ;;
-    *) echo "Unknown: $1"; exit 1 ;;
+    --user)  SSH_USER="$2"; shift 2 ;;
+    --port)  SSH_PORT="$2"; shift 2 ;;
+    --hosts) HOSTS_OVERRIDE="$2"; shift 2 ;;
+    *)  echo "Unknown: $1"; exit 1 ;;
   esac
 done
 
-command -v linode-cli &>/dev/null || { echo "linode-cli not found"; exit 1; }
-command -v jq         &>/dev/null || { echo "jq not found"; exit 1; }
-
 mkdir -p "$(dirname "$0")/../../reports"
 REPORT="$(dirname "$0")/../../reports/update-report-$(date +%Y%m%d-%H%M%S).md"
-IPS=$(linode-cli linodes list --json | jq -r '.[] | select(.status=="running") | .ipv4[0]')
 
-$DRY_RUN && warn "DRY RUN — no changes will be made"
+# Discover IPs: use --hosts if provided, otherwise use linode-cli
+if [ -n "$HOSTS_OVERRIDE" ]; then
+  info "Using provided hosts: $HOSTS_OVERRIDE"
+  IPS=$(echo "$HOSTS_OVERRIDE" | tr ',' '\n')
+else
+  command -v linode-cli &>/dev/null || { echo "linode-cli not found; use --hosts to specify IPs"; exit 1; }
+  command -v jq         &>/dev/null || { echo "jq not found"; exit 1; }
+  IPS=$(linode-cli linodes list --json | jq -r '.[] | select(.status=="running") | .ipv4[0]')
+fi
+
+$DRY_RUN && warn "DRY RUN – no changes will be made"
 
 {
-echo "# VM Update Report — $(date '+%Y-%m-%d %H:%M:%S')"
+echo "# VM Update Report – $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 echo "| VM | Result | Reboot Needed |"
 echo "|----|--------|---------------|"
