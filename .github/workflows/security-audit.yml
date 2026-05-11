@@ -39,6 +39,7 @@ jobs:
           ./scripts/security/audit.sh \
             --target "$TARGET" \
             --port 24830 \
+            --user "${{ vars.SSH_USER }}" \
             --output security/audits/
 
       - name: Upload audit reports
@@ -51,7 +52,7 @@ jobs:
       - name: Check for critical findings
         run: |
           if grep -r "CRITICAL\|HIGH" security/audits/*.md 2>/dev/null; then
-            echo "High/Critical findings detected — review the uploaded report"
+            echo "High/Critical findings detected - review the uploaded report"
           else
             echo "No critical findings"
           fi
